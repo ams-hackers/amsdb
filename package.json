@@ -2,10 +2,23 @@
   "name": "amsdb-project",
   "private": true,
   "scripts": {
-    "doc": "yarn workspace amsdb-doc start"
+    "doc": "yarn workspace amsdb-doc start",
+    "lint": "eslint ."
   },
   "workspaces": [
     "doc",
     "src"
-  ]
+  ],
+  "devDepedencies": {
+    "eslint": "^6.3.0",
+    "prettier": "^1.18.2"
+  },
+  "devDependencies": {
+    "eslint": "^6.3.0",
+    "eslint-config-prettier": "^6.2.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-react-hooks": "^2.0.1",
+    "prettier": "^1.18.2"
+  }
 }

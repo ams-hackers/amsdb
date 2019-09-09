@@ -1,6 +1,8 @@
 import React from "react";
 import Highlight, { defaultProps } from "prism-react-renderer";
 
+/* eslint-disable react/jsx-key */
+
 export const Code = ({ codeString, language }) => {
   return (
     <Highlight {...defaultProps} code={codeString} language={language}>
@@ -18,3 +20,5 @@ export const Code = ({ codeString, language }) => {
     </Highlight>
   );
 };
+
+/* eslint-enable react/jsx-key */
