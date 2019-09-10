@@ -5,5 +5,15 @@
   "license": "MIT",
   "bin": {
     "amsdb-server": "./bin/amsdb-server"
+  },
+  "scripts": {
+    "starts": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "casual": "^1.6.2",
+    "express": "^4.17.1",
+    "mkdirp": "^0.5.1",
+    "nodemon": "^1.19.2"
   }
 }
