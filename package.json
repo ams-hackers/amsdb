@@ -2,6 +2,7 @@
   "name": "amsdb-project",
   "private": true,
   "scripts": {
+    "start": "yarn workspace amsdb start",
     "doc": "yarn workspace amsdb-doc start",
     "lint": "eslint ."
   },

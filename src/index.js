@@ -1,51 +1,72 @@
-console.log(`Starting database...`);
-
 const mkdir = require("mkdirp");
-// const { performance } = require("perf_hooks");
 const fs = require("fs").promises;
 const path = require("path");
-const server = require("express");
-const bodyParser = require("body-parser");
+const Koa = require("koa");
+const bodyParser = require("koa-bodyparser");
+const Router = require("@koa/router");
 
-const dbDir = "./db";
+const DATA_DIR = "./data";
 
-const app = server();
+const app = new Koa();
+const router = new Router();
 
-app.use(bodyParser.json());
+mkdir.sync(DATA_DIR);
 
-mkdir.sync(dbDir);
+app.use(bodyParser());
 
 const validateKey = key => /\W+/g.test(key);
 
-app.get("/:key", async (req, res) => {
-  const { key } = req.params;
-
-  const isValidKey = !validateKey(key);
-
-  if (!isValidKey)
-    return res.send({ success: false, message: "Not a valid key" });
-
-  const possibleValue = await fs.readFile(path.resolve(dbDir, key), "utf-8");
-
-  res.send({ [key]: JSON.parse(possibleValue) });
-});
-
-app.put("/:key", async (req, res) => {
-  const { key } = req.params;
-
-  // console.log(`${key}`, req.body)
-
+router.use(async (ctx, next) => {
   try {
-    // let start = performance.now();
-    await fs.writeFile(path.resolve(dbDir, key), JSON.stringify(req.body), {});
-    // let end = performance.now();
-
-    // console.log({ time: end - start })
-    res.send({ success: true });
-  } catch (e) {
-    console.log("error", e);
-    res.send({ success: false, message: e.message });
+    await next();
+  } catch (err) {
+    ctx.status = 500;
+    ctx.body = {
+      status: "error",
+      message: err.message,
+      stacktrace: err.stack
+    };
   }
 });
 
+router.get("/:key", async ctx => {
+  const { key } = ctx.params;
+
+  const isValidKey = !validateKey(key);
+
+  if (!isValidKey) {
+    ctx.status = 401;
+    ctx.body = {
+      status: "error",
+      message: `Invalid key ${key}.`
+    };
+    return;
+  }
+
+  try {
+    const raw = await fs.readFile(path.resolve(DATA_DIR, key), "utf-8");
+    const value = JSON.parse(raw);
+    ctx.body = { status: "success", key, value };
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      ctx.body = {
+        status: "error",
+        message: `The key ${key} does not exist.`
+      };
+    } else {
+      throw err;
+    }
+  }
+});
+
+router.put("/:key", async ctx => {
+  const { key } = ctx.params;
+  const raw = JSON.stringify(ctx.request.body);
+  await fs.writeFile(path.resolve(DATA_DIR, key), raw);
+  ctx.body = { success: true };
+});
+
+app.use(router.routes());
+
+console.log(`Starting database...`);
 app.listen(3000);

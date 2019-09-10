@@ -1,4 +1,4 @@
 node_modules
 doc/public
 doc/.cache
-src/db
+src/data
