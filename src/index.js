@@ -1,51 +1,51 @@
 console.log(`Starting database...`);
 
-const mkdir = require('mkdirp')
-const { performance } = require('perf_hooks')
-const fs = require('fs').promises
-const path = require('path')
-const server = require('express')
-const bodyParser = require('body-parser')
+const mkdir = require("mkdirp");
+// const { performance } = require("perf_hooks");
+const fs = require("fs").promises;
+const path = require("path");
+const server = require("express");
+const bodyParser = require("body-parser");
 
-const dbDir = './db'
+const dbDir = "./db";
 
-const app = server()
+const app = server();
 
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 
-mkdir.sync(dbDir)
+mkdir.sync(dbDir);
 
-const validateKey = key => /\W+/g.test(key)
+const validateKey = key => /\W+/g.test(key);
 
-app.get('/:key', async (req, res) => {
-  const { key } = req.params
-  
-  const isValidKey = !validateKey(key)
+app.get("/:key", async (req, res) => {
+  const { key } = req.params;
 
-  if (!isValidKey) return res.send({ success: false, message: 'Not a valid key' })
+  const isValidKey = !validateKey(key);
 
-  const possibleValue = await fs.readFile(path.resolve(dbDir, key), 'utf-8')
+  if (!isValidKey)
+    return res.send({ success: false, message: "Not a valid key" });
 
-  res.send({ [key]: JSON.parse(possibleValue)  })
-})
+  const possibleValue = await fs.readFile(path.resolve(dbDir, key), "utf-8");
 
-app.put('/:key', async (req, res) => {
-  const { key } = req.params
+  res.send({ [key]: JSON.parse(possibleValue) });
+});
+
+app.put("/:key", async (req, res) => {
+  const { key } = req.params;
 
   // console.log(`${key}`, req.body)
 
   try {
-  
-    let start = performance.now()
-    await fs.writeFile(path.resolve(dbDir, key), JSON.stringify(req.body), {})
-    let end = performance.now()
+    // let start = performance.now();
+    await fs.writeFile(path.resolve(dbDir, key), JSON.stringify(req.body), {});
+    // let end = performance.now();
 
     // console.log({ time: end - start })
-    res.send({ success: true })
-  } catch(e) {
-    console.log('error', e)
-    res.send({ success: false, message: e.message })
+    res.send({ success: true });
+  } catch (e) {
+    console.log("error", e);
+    res.send({ success: false, message: e.message });
   }
-})
+});
 
-app.listen(3000)
+app.listen(3000);
