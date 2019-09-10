@@ -1,7 +1,5 @@
 const axios = require("axios");
-const http = require("http");
-const util = require("util");
-var casual = require("casual");
+const casual = require("casual");
 
 const request = axios.create({
   baseURL: "http://localhost:3000"
