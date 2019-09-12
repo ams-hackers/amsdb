@@ -16,7 +16,8 @@
     "casual": "^1.6.2",
     "koa": "^2.8.1",
     "koa-bodyparser": "^4.2.1",
-    "mkdirp": "^0.5.1"
+    "mkdirp": "^0.5.1",
+    "tmp-promise": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"
