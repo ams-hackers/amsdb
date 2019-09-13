@@ -1,9 +1,9 @@
 const mkdir = require("mkdirp");
-const fs = require("fs").promises;
 const path = require("path");
 const Koa = require("koa");
 const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
+const MemoryStore = require("./memory-store");
 
 const DATA_DIR = "./data";
 
@@ -12,9 +12,11 @@ const router = new Router();
 
 mkdir.sync(DATA_DIR);
 
+const memoryStore = new MemoryStore(path.resolve(DATA_DIR));
+
 app.use(bodyParser());
 
-const validateKey = key => /\W+/g.test(key);
+const validateKey = key => /(\W-)+/g.test(key);
 
 router.use(async (ctx, next) => {
   try {
@@ -31,7 +33,6 @@ router.use(async (ctx, next) => {
 
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
-
   const isValidKey = !validateKey(key);
 
   if (!isValidKey) {
@@ -41,28 +42,23 @@ router.get("/:key", async ctx => {
       message: `Invalid key ${key}.`
     };
     return;
-  }
-
-  try {
-    const raw = await fs.readFile(path.resolve(DATA_DIR, key), "utf-8");
-    const value = JSON.parse(raw);
-    ctx.body = { status: "success", key, value };
-  } catch (err) {
-    if (err.code === "ENOENT") {
+  } else {
+    const keyData = memoryStore.getKey(key);
+    if (keyData) {
+      ctx.body = { status: "success", key, keyData };
+      return;
+    } else {
       ctx.body = {
         status: "error",
         message: `The key ${key} does not exist.`
       };
-    } else {
-      throw err;
     }
   }
 });
 
 router.put("/:key", async ctx => {
   const { key } = ctx.params;
-  const raw = JSON.stringify(ctx.request.body);
-  await fs.writeFile(path.resolve(DATA_DIR, key), raw);
+  memoryStore.addKey(key, ctx.request.body);
   ctx.body = { success: true };
 });
 
