@@ -5,6 +5,8 @@ const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 const MemoryStore = require("./memory-store");
 
+const { tmpName } = require("tmp-promise");
+
 const DATA_DIR = "./data";
 
 const app = new Koa();
@@ -58,7 +60,18 @@ router.get("/:key", async ctx => {
 
 router.put("/:key", async ctx => {
   const { key } = ctx.params;
+<<<<<<< HEAD
   memoryStore.addKey(key, ctx.request.body);
+=======
+  const raw = JSON.stringify(ctx.request.body);
+
+  const tmp = await tmpName();
+  const out = path.resolve(DATA_DIR, key);
+
+  await fs.writeFile(tmp, raw);
+  await fs.rename(tmp, out);
+
+>>>>>>> master
   ctx.body = { success: true };
 });
 
