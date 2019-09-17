@@ -2,3 +2,4 @@ node_modules
 doc/public
 doc/.cache
 src/data
+data

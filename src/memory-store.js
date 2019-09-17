@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { tmpName } = require("tmp-promise");
 class MemoryStore {
   constructor(directory) {
     this.directory = directory;
@@ -28,13 +29,12 @@ class MemoryStore {
     return data;
   }
   addKey(key, value) {
-    fs.writeFile(
-      path.resolve(this.directory, key),
-      JSON.stringify(value),
-      err => {
-        if (err) throw err;
-      }
-    );
+    tmpName().then(tmpPath => {
+      const out = path.resolve(this.directory, key);
+      fs.writeFileSync(tmpPath, JSON.stringify(value));
+      fs.renameSync(tmpPath, out);
+    });
+
     this.cached_db[key] = value;
   }
 }

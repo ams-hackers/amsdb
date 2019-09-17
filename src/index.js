@@ -5,9 +5,7 @@ const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 const MemoryStore = require("./memory-store");
 
-const { tmpName } = require("tmp-promise");
-
-const DATA_DIR = "./data";
+const DATA_DIR = "../data";
 
 const app = new Koa();
 const router = new Router();
@@ -36,7 +34,6 @@ router.use(async (ctx, next) => {
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
   const isValidKey = !validateKey(key);
-
   if (!isValidKey) {
     ctx.status = 401;
     ctx.body = {
@@ -45,33 +42,25 @@ router.get("/:key", async ctx => {
     };
     return;
   } else {
+    console.time(`reading key ${key}`);
     const keyData = memoryStore.getKey(key);
     if (keyData) {
       ctx.body = { status: "success", key, keyData };
-      return;
     } else {
       ctx.body = {
         status: "error",
         message: `The key ${key} does not exist.`
       };
     }
+    console.timeEnd(`reading key ${key}`);
   }
 });
 
 router.put("/:key", async ctx => {
   const { key } = ctx.params;
-<<<<<<< HEAD
+  console.time(`writing key ${key}`);
   memoryStore.addKey(key, ctx.request.body);
-=======
-  const raw = JSON.stringify(ctx.request.body);
-
-  const tmp = await tmpName();
-  const out = path.resolve(DATA_DIR, key);
-
-  await fs.writeFile(tmp, raw);
-  await fs.rename(tmp, out);
-
->>>>>>> master
+  console.timeEnd(`writing key ${key}`);
   ctx.body = { success: true };
 });
 
