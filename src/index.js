@@ -7,7 +7,7 @@ const Router = require("@koa/router");
 
 const { tmpName } = require("tmp-promise");
 
-const DATA_DIR = "./data";
+const DATA_DIR = "../data";
 
 const app = new Koa();
 const router = new Router();
@@ -16,7 +16,7 @@ mkdir.sync(DATA_DIR);
 
 app.use(bodyParser());
 
-const validateKey = key => /\W+/g.test(key);
+const validateKey = key => /(\W-)+/g.test(key);
 
 router.use(async (ctx, next) => {
   try {
@@ -33,7 +33,7 @@ router.use(async (ctx, next) => {
 
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
-
+  console.time(`reading key ${key}`);
   const isValidKey = !validateKey(key);
 
   if (!isValidKey) {
@@ -59,10 +59,12 @@ router.get("/:key", async ctx => {
       throw err;
     }
   }
+  console.timeEnd(`reading key ${key}`);
 });
 
 router.put("/:key", async ctx => {
   const { key } = ctx.params;
+  console.time(`writing key ${key}`);
   const raw = JSON.stringify(ctx.request.body);
 
   const tmp = await tmpName();
@@ -70,7 +72,7 @@ router.put("/:key", async ctx => {
 
   await fs.writeFile(tmp, raw);
   await fs.rename(tmp, out);
-
+  console.timeEnd(`writing key ${key}`);
   ctx.body = { success: true };
 });
 
