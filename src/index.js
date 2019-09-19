@@ -37,7 +37,7 @@ router.get("/:key", async ctx => {
   const isValidKey = !validateKey(key);
 
   if (!isValidKey) {
-    ctx.status = 401;
+    ctx.status = 400;
     ctx.body = {
       status: "error",
       message: `Invalid key ${key}.`
