@@ -1,10 +1,12 @@
 const { performance } = require("perf_hooks");
+const http = require("http");
 const axios = require("axios");
 const casual = require("casual");
 const Bluebird = require("bluebird");
 
 const request = axios.create({
-  baseURL: "http://localhost:3000"
+  baseURL: "http://localhost:3000",
+  httpAgent: new http.Agent({ keepAlive: true })
 });
 
 async function test() {
