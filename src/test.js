@@ -9,13 +9,17 @@ const request = axios.create({
   httpAgent: new http.Agent({ keepAlive: true })
 });
 
+let total = 0;
+let count = 0;
+
 async function test() {
   const key = casual.word;
-  await request.put(`/${key}`, { name: casual.full_name });
   const start = performance.now();
+  await request.put(`/${key}`, { name: casual.sentences(500) });
   const response = await request.get(`/${key}`);
   const end = performance.now();
-  console.log(end - start + " ms");
+  total += end - start;
+  count++;
 }
 
 Bluebird.map(
@@ -28,5 +32,8 @@ Bluebird.map(
       process.exit(-1);
     });
   },
-  { concurrency: 10 }
-);
+  { concurrency: 100 }
+).then(() => {
+  const average = total / count;
+  console.log(`Average: ${average} ms`);
+});

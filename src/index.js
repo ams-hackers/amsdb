@@ -6,6 +6,7 @@ const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 
 const { tmpName } = require("tmp-promise");
+const { acquireLock } = require("./lock");
 
 const DATA_DIR = "../data";
 
@@ -33,7 +34,6 @@ router.use(async (ctx, next) => {
 
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
-  console.time(`reading key ${key}`);
   const isValidKey = !validateKey(key);
 
   if (!isValidKey) {
@@ -47,7 +47,8 @@ router.get("/:key", async ctx => {
 
   try {
     const raw = await fs.readFile(path.resolve(DATA_DIR, key), "utf-8");
-    const value = JSON.parse(raw);
+    const entries = raw.split("\n");
+    const value = JSON.parse(entries[entries.length - 2]);
     ctx.body = { status: "success", key, value };
   } catch (err) {
     if (err.code === "ENOENT") {
@@ -59,20 +60,21 @@ router.get("/:key", async ctx => {
       throw err;
     }
   }
-  console.timeEnd(`reading key ${key}`);
 });
 
 router.put("/:key", async ctx => {
   const { key } = ctx.params;
-  console.time(`writing key ${key}`);
   const raw = JSON.stringify(ctx.request.body);
 
   const tmp = await tmpName();
   const out = path.resolve(DATA_DIR, key);
 
-  await fs.writeFile(tmp, raw);
-  await fs.rename(tmp, out);
-  console.timeEnd(`writing key ${key}`);
+  const release = await acquireLock(key);
+  const fh = await fs.open(out, "a");
+  await fh.writeFile(raw + "\n");
+  await fh.sync();
+  await fh.close();
+  release();
   ctx.body = { success: true };
 });
 
