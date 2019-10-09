@@ -27,7 +27,7 @@ router.use(async (ctx, next) => {
 
 router.get("/read-transaction", async ctx => {
   ctx.body = {
-    txid: getReadTransactionId()
+    txid: await getReadTransactionId()
   };
 });
 
@@ -53,7 +53,9 @@ router.get("/keys/:key", async ctx => {
     };
   }
 
-  const txid = txidString ? parseInt(txidString, 10) : getReadTransactionId();
+  const txid = txidString
+    ? parseInt(txidString, 10)
+    : await getReadTransactionId();
 
   const version = await readKey(txid, key);
 
@@ -66,7 +68,7 @@ router.get("/keys/:key", async ctx => {
 });
 
 router.put("/keys/:key", async ctx => {
-  const currentTransactionId = getWriteTransactionId();
+  const currentTransactionId = await getWriteTransactionId();
   const { key } = ctx.params;
   await writeKey(currentTransactionId, key, ctx.request.body);
   ctx.body = { success: true };

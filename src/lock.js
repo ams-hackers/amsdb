@@ -1,7 +1,7 @@
 const locks = {};
 
 class Lock {
-  constructor(opts) {
+  constructor(opts = {}) {
     this.queue = [];
     this.onClear = opts.onClear;
   }
@@ -16,7 +16,7 @@ class Lock {
       if (this.queue.length) {
         this.queue[0](release);
       } else {
-        this.onClear();
+        if (this.onClear) this.onClear();
       }
     };
 
@@ -44,5 +44,6 @@ function getActiveLocks() {
   return Object.entries(locks);
 }
 
+exports.Lock = Lock;
 exports.acquireLock = acquireLock;
 exports.getActiveLocks = getActiveLocks;

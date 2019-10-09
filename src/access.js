@@ -3,7 +3,7 @@ const mkdir = require("mkdirp");
 const fs = require("fs").promises;
 const { acquireLock } = require("./lock");
 
-const DATA_DIR = "../data";
+const { DATA_DIR } = require("./config");
 
 mkdir.sync(DATA_DIR);
 mkdir.sync(path.resolve(DATA_DIR, "keys"));
