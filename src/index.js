@@ -5,7 +5,6 @@ const Koa = require("koa");
 const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 
-const { tmpName } = require("tmp-promise");
 const { acquireLock } = require("./lock");
 
 const { getReadTransactionId, getWriteTransactionId } = require("./txid");
@@ -103,7 +102,6 @@ router.put("/keys/:key", async ctx => {
     value: ctx.request.body
   });
 
-  const tmp = await tmpName();
   const out = getFilePathForKey(key);
 
   const release = await acquireLock(key);
