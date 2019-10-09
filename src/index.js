@@ -34,6 +34,12 @@ router.use(async (ctx, next) => {
 
 let nextAvailableTransactionId = 0;
 
+router.get("/read-transaction", async ctx => {
+  ctx.body = {
+    txid: nextAvailableTransactionId
+  };
+});
+
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
   const { txid: txidString } = ctx.query;
@@ -64,12 +70,11 @@ router.get("/:key", async ctx => {
       .slice(0, -1)
       .map(line => JSON.parse(line));
 
-    const txid = parseInt(txidString, 10);
+    const txid = txidString
+      ? parseInt(txidString, 10)
+      : nextAvailableTransactionId;
 
-    const visibleVersions = entries.filter(entry => {
-      console.log(entry.txid, txid);
-      return entry.txid < txid;
-    });
+    const visibleVersions = entries.filter(entry => entry.txid < txid);
 
     if (visibleVersions.length === 0) {
       onNotFound();
