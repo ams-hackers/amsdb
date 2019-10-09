@@ -32,8 +32,12 @@ router.use(async (ctx, next) => {
   }
 });
 
+let nextAvailableTransactionId = 0;
+
 router.get("/:key", async ctx => {
   const { key } = ctx.params;
+  const { txid: txidString } = ctx.query;
+
   const isValidKey = !validateKey(key);
 
   if (!isValidKey) {
@@ -45,17 +49,38 @@ router.get("/:key", async ctx => {
     return;
   }
 
+  function onNotFound() {
+    ctx.body = {
+      status: "error",
+      message: `The key ${key} does not exist.`
+    };
+  }
+
   try {
     const raw = await fs.readFile(path.resolve(DATA_DIR, key), "utf-8");
-    const entries = raw.split("\n");
-    const value = JSON.parse(entries[entries.length - 2]);
-    ctx.body = { status: "success", key, value };
+
+    const entries = raw
+      .split("\n")
+      .slice(0, -1)
+      .map(line => JSON.parse(line));
+
+    const txid = parseInt(txidString, 10);
+
+    const visibleVersions = entries.filter(entry => {
+      console.log(entry.txid, txid);
+      return entry.txid < txid;
+    });
+
+    if (visibleVersions.length === 0) {
+      onNotFound();
+      return;
+    } else {
+      const currentVersion = visibleVersions[visibleVersions.length - 1];
+      ctx.body = { status: "success", key, value: currentVersion.value };
+    }
   } catch (err) {
     if (err.code === "ENOENT") {
-      ctx.body = {
-        status: "error",
-        message: `The key ${key} does not exist.`
-      };
+      onNotFound();
     } else {
       throw err;
     }
@@ -63,8 +88,13 @@ router.get("/:key", async ctx => {
 });
 
 router.put("/:key", async ctx => {
+  const currentTransactionId = ++nextAvailableTransactionId;
+
   const { key } = ctx.params;
-  const raw = JSON.stringify(ctx.request.body);
+  const raw = JSON.stringify({
+    txid: currentTransactionId,
+    value: ctx.request.body
+  });
 
   const tmp = await tmpName();
   const out = path.resolve(DATA_DIR, key);
