@@ -40,6 +40,10 @@ router.get("/read-transaction", async ctx => {
   };
 });
 
+function getFilePathForKey(key) {
+  return path.resolve(DATA_DIR, "keys", key);
+}
+
 router.get("/keys/:key", async ctx => {
   const { key } = ctx.params;
   const { txid: txidString } = ctx.query;
@@ -63,7 +67,7 @@ router.get("/keys/:key", async ctx => {
   }
 
   try {
-    const raw = await fs.readFile(path.resolve(DATA_DIR, key), "utf-8");
+    const raw = await fs.readFile(getFilePathForKey(key), "utf-8");
 
     const entries = raw
       .split("\n")
@@ -100,7 +104,7 @@ router.put("/keys/:key", async ctx => {
   });
 
   const tmp = await tmpName();
-  const out = path.resolve(DATA_DIR, key);
+  const out = getFilePathForKey(key);
 
   const release = await acquireLock(key);
   const fh = await fs.open(out, "a");
