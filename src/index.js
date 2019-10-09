@@ -8,6 +8,8 @@ const Router = require("@koa/router");
 const { tmpName } = require("tmp-promise");
 const { acquireLock } = require("./lock");
 
+const { getReadTransactionId, getWriteTransactionId } = require("./txid");
+
 const DATA_DIR = "../data";
 
 const app = new Koa();
@@ -32,11 +34,9 @@ router.use(async (ctx, next) => {
   }
 });
 
-let nextAvailableTransactionId = 0;
-
 router.get("/read-transaction", async ctx => {
   ctx.body = {
-    txid: nextAvailableTransactionId
+    txid: getReadTransactionId()
   };
 });
 
@@ -70,9 +70,7 @@ router.get("/keys/:key", async ctx => {
       .slice(0, -1)
       .map(line => JSON.parse(line));
 
-    const txid = txidString
-      ? parseInt(txidString, 10)
-      : nextAvailableTransactionId;
+    const txid = txidString ? parseInt(txidString, 10) : getReadTransactionId();
 
     const visibleVersions = entries.filter(entry => entry.txid < txid);
 
@@ -93,7 +91,7 @@ router.get("/keys/:key", async ctx => {
 });
 
 router.put("/keys/:key", async ctx => {
-  const currentTransactionId = ++nextAvailableTransactionId;
+  const currentTransactionId = getWriteTransactionId();
 
   const { key } = ctx.params;
   const raw = JSON.stringify({
