@@ -15,8 +15,8 @@ let count = 0;
 async function test() {
   const key = casual.word;
   const start = performance.now();
-  await request.put(`/${key}`, { name: casual.sentences(500) });
-  const response = await request.get(`/${key}`);
+  await request.put(`/keys/${key}`, { name: casual.sentences(500) });
+  const response = await request.get(`/keys/${key}`);
   const end = performance.now();
   total += end - start;
   count++;

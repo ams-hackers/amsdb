@@ -40,7 +40,7 @@ router.get("/read-transaction", async ctx => {
   };
 });
 
-router.get("/:key", async ctx => {
+router.get("/keys/:key", async ctx => {
   const { key } = ctx.params;
   const { txid: txidString } = ctx.query;
 
@@ -92,7 +92,7 @@ router.get("/:key", async ctx => {
   }
 });
 
-router.put("/:key", async ctx => {
+router.put("/keys/:key", async ctx => {
   const currentTransactionId = ++nextAvailableTransactionId;
 
   const { key } = ctx.params;
