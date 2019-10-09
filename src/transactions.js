@@ -30,8 +30,14 @@ const txlock = new Lock();
   }
 })();
 
-async function getReadTransactionId() {
-  return nextAvailableTransactionId;
+class Transaction {
+  constructor(txid) {
+    this.txid = txid;
+  }
+}
+
+async function getReadTransaction() {
+  return new Transaction(nextAvailableTransactionId);
 }
 
 async function writeFileAndSync(file, content) {
@@ -41,7 +47,7 @@ async function writeFileAndSync(file, content) {
   await fh.close();
 }
 
-async function getWriteTransactionId() {
+async function getWriteTransaction() {
   const release = await txlock.acquire();
 
   // We write the txid to disk before we give it to the consumer.
@@ -60,7 +66,20 @@ async function getWriteTransactionId() {
 
   release();
 
-  return currentTransactionId;
+  return new Transaction(currentTransactionId);
 }
 
-module.exports = { getReadTransactionId, getWriteTransactionId };
+function encodeTransaction(tx) {
+  return String(tx.txid);
+}
+
+function decodeTransaction(raw) {
+  return new Transaction(parseInt(raw, 10));
+}
+
+module.exports = {
+  getReadTransaction,
+  getWriteTransaction,
+  encodeTransaction,
+  decodeTransaction
+};

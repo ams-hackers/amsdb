@@ -3,7 +3,12 @@ const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 
 const { readKey, writeKey } = require("./access");
-const { getReadTransactionId, getWriteTransactionId } = require("./txid");
+const {
+  decodeTransaction,
+  encodeTransaction,
+  getReadTransaction,
+  getWriteTransaction
+} = require("./transactions");
 
 const app = new Koa();
 const router = new Router();
@@ -26,14 +31,13 @@ router.use(async (ctx, next) => {
 });
 
 router.get("/read-transaction", async ctx => {
-  ctx.body = {
-    txid: await getReadTransactionId()
-  };
+  const tx = await getReadTransaction();
+  ctx.body = encodeTransaction(tx);
 });
 
 router.get("/keys/:key", async ctx => {
   const { key } = ctx.params;
-  const { txid: txidString } = ctx.query;
+  const { token } = ctx.query;
 
   const isValidKey = !validateKey(key);
 
@@ -53,11 +57,9 @@ router.get("/keys/:key", async ctx => {
     };
   }
 
-  const txid = txidString
-    ? parseInt(txidString, 10)
-    : await getReadTransactionId();
+  const tx = token ? decodeTransaction(token) : await getReadTransaction();
 
-  const version = await readKey(txid, key);
+  const version = await readKey(tx, key);
 
   if (!version) {
     onNotFound();
@@ -68,7 +70,7 @@ router.get("/keys/:key", async ctx => {
 });
 
 router.put("/keys/:key", async ctx => {
-  const currentTransactionId = await getWriteTransactionId();
+  const currentTransactionId = await getWriteTransaction();
   const { key } = ctx.params;
   await writeKey(currentTransactionId, key, ctx.request.body);
   ctx.body = { success: true };

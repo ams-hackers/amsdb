@@ -12,7 +12,7 @@ function getFilePathForKey(key) {
   return path.resolve(DATA_DIR, "keys", key);
 }
 
-async function readKey(txid, key) {
+async function readKey(tx, key) {
   try {
     const raw = await fs.readFile(getFilePathForKey(key), "utf-8");
 
@@ -21,7 +21,7 @@ async function readKey(txid, key) {
       .slice(0, -1)
       .map(line => JSON.parse(line));
 
-    const visibleVersions = entries.filter(entry => entry.txid < txid);
+    const visibleVersions = entries.filter(entry => entry.txid < tx.txid);
 
     return visibleVersions.length === 0
       ? null
@@ -35,11 +35,11 @@ async function readKey(txid, key) {
   }
 }
 
-async function writeKey(txid, key, value) {
+async function writeKey(tx, key, value) {
   const out = getFilePathForKey(key);
 
   const raw = JSON.stringify({
-    txid,
+    txid: tx.txid,
     value
   });
 
