@@ -26,3 +26,17 @@ test.serial("should be able to read own writes", async t => {
   await alexTx.commit();
   t.is(name, "alex");
 });
+
+test.serial("should be able to rollback a transaction", async t => {
+  const tx1 = await db.writeTransaction();
+  await tx1.put("test", "10");
+  await tx1.commit();
+
+  const tx2 = await db.writeTransaction();
+  await tx2.put("test", "20");
+  await tx2.rollback();
+
+  const result = await db.get("test");
+
+  t.is(result, "10");
+});

@@ -52,6 +52,11 @@ class WriteTransaction extends ReadTransaction {
   commit() {
     return this.request.post(`/close-write-transaction?token=${this.token}`);
   }
+  rollback() {
+    return this.request.post(
+      `/close-write-transaction?token=${this.token}&rollback`
+    );
+  }
 }
 
 function connect(host) {
