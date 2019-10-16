@@ -18,18 +18,16 @@ app.use(bodyParser());
 
 const validateKey = key => /(\W-)+/g.test(key);
 
-// router.use(async (ctx, next) => {
-//   try {
-//     await next();
-//   } catch (err) {
-//     ctx.status = 500;
-//     ctx.body = {
-//       status: "error",
-//       message: err.message,
-//       stacktrace: err.stack
-//     };
-//   }
-// });
+// https://github.com/koajs/koa/wiki/Error-Handling#catching-downstream-errors
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch (err) {
+    ctx.status = err.status || 500;
+    ctx.body = err.message;
+    ctx.app.emit("error", err, ctx);
+  }
+});
 
 router.get("/read-transaction", async ctx => {
   const tx = await getReadTransaction();
