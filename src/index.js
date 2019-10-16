@@ -4,10 +4,12 @@ const Router = require("@koa/router");
 
 const { readKey, writeKey } = require("./access");
 const {
+  commitTransaction,
   decodeTransaction,
   encodeTransaction,
   getReadTransaction,
-  getWriteTransaction
+  getWriteTransaction,
+  releaseWriteTransaction
 } = require("./transactions");
 
 const app = new Koa();
@@ -17,16 +19,14 @@ app.use(bodyParser());
 
 const validateKey = key => /(\W-)+/g.test(key);
 
-router.use(async (ctx, next) => {
+// https://github.com/koajs/koa/wiki/Error-Handling#catching-downstream-errors
+app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    ctx.status = 500;
-    ctx.body = {
-      status: "error",
-      message: err.message,
-      stacktrace: err.stack
-    };
+    ctx.status = err.status || 500;
+    ctx.body = err.message;
+    ctx.app.emit("error", err, ctx);
   }
 });
 
@@ -70,10 +70,28 @@ router.get("/keys/:key", async ctx => {
 });
 
 router.put("/keys/:key", async ctx => {
-  const currentTransactionId = await getWriteTransaction();
+  const { token } = ctx.query;
   const { key } = ctx.params;
-  await writeKey(currentTransactionId, key, ctx.request.body);
+  const tx = decodeTransaction(token);
+  await writeKey(tx, key, ctx.request.body);
   ctx.body = { success: true };
+});
+
+router.post("/begin-write-transaction", async ctx => {
+  const tx = await getWriteTransaction();
+  ctx.body = encodeTransaction(tx);
+});
+
+router.post("/close-write-transaction", async ctx => {
+  const { token } = ctx.query;
+  const tx = decodeTransaction(token);
+  const rollback = ctx.query.rollback !== undefined;
+
+  if (!rollback) {
+    await commitTransaction(tx);
+  }
+  releaseWriteTransaction(tx);
+  ctx.body = "ok";
 });
 
 app.use(router.routes());

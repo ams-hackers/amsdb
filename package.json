@@ -4,7 +4,8 @@
   "scripts": {
     "start": "yarn workspace amsdb start",
     "doc": "yarn workspace amsdb-doc start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "ava"
   },
   "workspaces": [
     "doc",
@@ -15,6 +16,7 @@
     "prettier": "^1.18.2"
   },
   "devDependencies": {
+    "ava": "^2.4.0",
     "eslint": "^6.3.0",
     "eslint-config-prettier": "^6.2.0",
     "eslint-plugin-prettier": "^3.1.0",

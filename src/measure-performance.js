@@ -12,11 +12,11 @@ const request = axios.create({
 let total = 0;
 let count = 0;
 
-async function test() {
+async function putGetKey() {
   const key = casual.word;
   const start = performance.now();
   await request.put(`/keys/${key}`, { name: casual.sentences(500) });
-  const response = await request.get(`/keys/${key}`);
+  await request.get(`/keys/${key}`);
   const end = performance.now();
   total += end - start;
   count++;
@@ -24,8 +24,8 @@ async function test() {
 
 Bluebird.map(
   new Array(1000),
-  i => {
-    return test().catch(err => {
+  () => {
+    return putGetKey().catch(err => {
       console.error(err.message);
       console.error(err.stack);
       console.error(err);
