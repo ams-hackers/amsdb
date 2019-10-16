@@ -26,17 +26,34 @@ let release = null;
 (() => {
   try {
     const raw = readFileSync(TXFILE, "utf-8");
-    const txidState = JSON.parse(raw);
-    currentTransactionId = txidState.txid;
+
+    const entries = raw
+      .split("\n")
+      .slice(0, -1)
+      .map(e => JSON.parse(e));
+
+    currentTransactionId = Math.max(...entries.map(e => e.txid)) + 1;
+    commitedTransactionIds = entries
+      .filter(e => e.operation === "commit")
+      .map(e => e.txid);
   } catch (err) {
     if (err.code === "ENOENT") {
       // Starting for the first time!
-      currentTransactionId = 0;
     } else {
       throw err;
     }
   }
 })();
+
+const logLock = new Lock();
+async function logTx(operation, txid) {
+  const release = await logLock.acquire();
+  const fh = await fs.open(TXFILE, "a");
+  await fh.writeFile(JSON.stringify({ operation, txid }) + "\n");
+  await fh.sync();
+  await fh.close();
+  release();
+}
 
 class Transaction {
   constructor(txid, openTransactionIds) {
@@ -51,13 +68,6 @@ async function getReadTransaction() {
     mightLastTransactionBeWrite = false;
   }
   return new Transaction(currentTransactionId, openTransactionIds);
-}
-
-async function writeFileAndSync(file, content) {
-  const fh = await fs.open(file, "w");
-  await fh.writeFile(JSON.stringify(content));
-  await fh.sync();
-  await fh.close();
 }
 
 async function getWriteTransaction() {
@@ -80,9 +90,7 @@ async function getWriteTransaction() {
   // Make sure the current transaction is visible by recording it as open after we create our own transaction.
   openTransactionIds = [...openTransactionIds, currentTransactionId];
 
-  await writeFileAndSync(TXFILE, {
-    txid: currentTransactionId
-  });
+  await logTx("start", currentTransactionId);
 
   return newTransaction;
 }
@@ -99,6 +107,7 @@ function releaseWriteTransaction(tx) {
 }
 
 async function commitTransaction(tx) {
+  await logTx("commit", tx.txid);
   commitedTransactionIds = [...commitedTransactionIds, tx.txid];
 }
 
