@@ -18,6 +18,8 @@ let mightLastTransactionBeWrite = true;
 
 let openTransactionIds = [];
 
+let commitedTransactionIds = [];
+
 let release = null;
 
 // Pre-load the txid from disk at startup
@@ -96,6 +98,18 @@ function releaseWriteTransaction(tx) {
   release();
 }
 
+async function commitTransaction(tx) {
+  commitedTransactionIds = [...commitedTransactionIds, tx.txid];
+}
+
+function isCommited(txid) {
+  console.log(
+    "check if " + txid + " was commited",
+    commitedTransactionIds.includes(txid)
+  );
+  return commitedTransactionIds.includes(txid);
+}
+
 function encodeTransaction(tx) {
   return [tx.txid, ...tx.openTransactionIds].join(",");
 }
@@ -111,6 +125,8 @@ function decodeTransaction(raw) {
 module.exports = {
   getReadTransaction,
   getWriteTransaction,
+  commitTransaction,
+  isCommited,
   encodeTransaction,
   decodeTransaction,
   releaseWriteTransaction

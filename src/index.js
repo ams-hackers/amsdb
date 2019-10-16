@@ -4,6 +4,7 @@ const Router = require("@koa/router");
 
 const { readKey, writeKey } = require("./access");
 const {
+  commitTransaction,
   decodeTransaction,
   encodeTransaction,
   getReadTransaction,
@@ -84,6 +85,11 @@ router.post("/begin-write-transaction", async ctx => {
 router.post("/close-write-transaction", async ctx => {
   const { token } = ctx.query;
   const tx = decodeTransaction(token);
+  const rollback = ctx.query.rollback !== undefined;
+
+  if (!rollback) {
+    await commitTransaction(tx);
+  }
   releaseWriteTransaction(tx);
   ctx.body = "ok";
 });

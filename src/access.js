@@ -2,6 +2,7 @@ const path = require("path");
 const mkdir = require("mkdirp");
 const fs = require("fs").promises;
 const { acquireLock } = require("./lock");
+const { isCommited } = require("./transactions");
 
 const { DATA_DIR } = require("./config");
 
@@ -21,10 +22,13 @@ async function readKey(tx, key) {
       .slice(0, -1)
       .map(line => JSON.parse(line));
 
-    const visibleVersions = entries.filter(
-      entry =>
-        entry.txid <= tx.txid && !tx.openTransactionIds.includes(entry.txid)
-    );
+    const visibleVersions = entries.filter(entry => {
+      return (
+        entry.txid <= tx.txid &&
+        !tx.openTransactionIds.includes(entry.txid) &&
+        isCommited(entry.txid)
+      );
+    });
 
     return visibleVersions.length === 0
       ? null
