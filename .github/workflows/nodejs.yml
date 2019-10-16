@@ -20,7 +20,8 @@ jobs:
     - name: npm install, build, and test
       run: |
         yarn install
-        yarn run build --if-present
-        yarn test
+        timeout 180 yarn start & # start server, kill after 3 min
+        sleep 5 # wait five seconds for the server to start
+        yarn test # run the tests
       env:
         CI: true
