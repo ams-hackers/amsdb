@@ -103,10 +103,6 @@ async function commitTransaction(tx) {
 }
 
 function isCommited(txid) {
-  console.log(
-    "check if " + txid + " was commited",
-    commitedTransactionIds.includes(txid)
-  );
   return commitedTransactionIds.includes(txid);
 }
 
