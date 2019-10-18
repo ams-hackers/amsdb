@@ -3,8 +3,11 @@ const axios = require("axios");
 async function getKey(request, token, key) {
   let query = token ? `?token=${token}` : "";
   const response = await request.get(`/keys/${key}${query}`);
-  const result = response.data.value.value;
-  return result;
+  if (response.data.value) {
+    return response.data.value.value;
+  } else {
+    throw new Error(response.data.message);
+  }
 }
 
 async function putKey(request, token, key, value) {
