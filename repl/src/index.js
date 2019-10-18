@@ -56,11 +56,12 @@ const handlers = {
 };
 
 async function evalCommand(input) {
-  const [cmd, ...args] = input.split(/\s+/);
-
-  handlers();
-
-  switch (cmd.toUpperCase()) {
+  const [_cmd, ...args] = input.split(/\s+/);
+  const cmd = _cmd.toUpperCase();
+  if (cmd in handlers) {
+    return handlers[cmd](args);
+  } else {
+    throw new Error("Unknown command");
   }
 }
 
@@ -74,11 +75,11 @@ const amsdbRepl = repl.start({
         callback(null, result);
       })
       .catch(err => {
-        callback(err);
+        callback(err.message);
       })
       .finally(() => {
-        console.log({ tx });
         amsdbRepl.setPrompt(tx ? `${tx.token}> ` : "> ");
+        amsdbRepl.prompt();
       });
   }
 });
