@@ -2,14 +2,16 @@
   "name": "amsdb-project",
   "private": true,
   "scripts": {
-    "start": "yarn workspace amsdb start",
+    "start": "yarn workspace amsdb-server start",
     "doc": "yarn workspace amsdb-doc start",
     "lint": "eslint .",
     "test": "ava"
   },
   "workspaces": [
     "doc",
-    "src"
+    "server",
+    "client",
+    "repl"
   ],
   "devDepedencies": {
     "eslint": "^6.3.0",
