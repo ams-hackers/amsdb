@@ -20,7 +20,7 @@ jobs:
     - name: npm install, build, and test
       run: |
         yarn install
-        timeout 30 node src/index.js & # start server, kill after 30 seconds
+        timeout 30 node server/index.js & # start server, kill after 30 seconds
         sleep 3 # wait three seconds for the server to start
         yarn test # run the tests
       env:
