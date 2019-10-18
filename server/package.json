@@ -1,5 +1,5 @@
 {
-  "name": "amsdb",
+  "name": "amsdb-server",
   "version": "1.0.0",
   "main": "src/index.js",
   "license": "MIT",
@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@koa/router": "^8.0.1",
-    "axios": "^0.19.0",
     "bluebird": "^3.5.5",
     "casual": "^1.6.2",
     "koa": "^2.8.1",
@@ -21,6 +20,7 @@
   },
   "devDependencies": {
     "ava": "^2.4.0",
-    "nodemon": "^1.19.2"
+    "nodemon": "^1.19.2",
+    "axios": "^0.19.0"
   }
 }
