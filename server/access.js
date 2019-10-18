@@ -24,9 +24,10 @@ async function readKey(tx, key) {
 
     const visibleVersions = entries.filter(entry => {
       return (
-        entry.txid <= tx.txid &&
-        !tx.openTransactionIds.includes(entry.txid) &&
-        isCommited(entry.txid)
+        (entry.txid <= tx.txid &&
+          !tx.openTransactionIds.includes(entry.txid) &&
+          isCommited(entry.txid)) ||
+        entry.txid === tx.txid
       );
     });
 
