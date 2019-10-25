@@ -1,5 +1,3 @@
-const locks = {};
-
 class Lock {
   constructor(opts = {}) {
     this.queue = [];
@@ -29,21 +27,4 @@ class Lock {
   }
 }
 
-async function acquireLock(key) {
-  if (!(key in locks)) {
-    locks[key] = new Lock({
-      onClear: () => {
-        delete locks[key];
-      }
-    });
-  }
-  return locks[key].acquire();
-}
-
-function getActiveLocks() {
-  return Object.entries(locks);
-}
-
 exports.Lock = Lock;
-exports.acquireLock = acquireLock;
-exports.getActiveLocks = getActiveLocks;

@@ -1,10 +1,23 @@
 const path = require("path");
 const mkdir = require("mkdirp");
 const fs = require("fs").promises;
-const { acquireLock } = require("./lock");
+const { Lock } = require("./lock");
 const { isCommited } = require("./transactions");
 
 const { DATA_DIR } = require("./config");
+
+const keyLocks = {};
+
+async function acquireKeyLock(key) {
+  if (!(key in keyLocks)) {
+    keyLocks[key] = new Lock({
+      onClear: () => {
+        delete keyLocks[key];
+      }
+    });
+  }
+  return keyLocks[key].acquire();
+}
 
 mkdir.sync(DATA_DIR);
 mkdir.sync(path.resolve(DATA_DIR, "keys"));
@@ -51,7 +64,7 @@ async function writeKey(tx, key, value) {
     value
   });
 
-  const release = await acquireLock(key);
+  const release = await acquireKeyLock(key);
   const fh = await fs.open(out, "a");
   await fh.writeFile(raw + "\n");
   await fh.sync();
