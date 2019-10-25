@@ -5,7 +5,7 @@
     "start": "yarn workspace amsdb-server start",
     "doc": "yarn workspace amsdb-doc start",
     "lint": "eslint .",
-    "test": "ava"
+    "test": "ava -v"
   },
   "workspaces": [
     "doc",

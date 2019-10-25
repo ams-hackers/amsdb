@@ -27,4 +27,37 @@ class Lock {
   }
 }
 
+class MRSWLock {
+  constructor() {
+    this.lock = new Lock();
+
+    this.acquireSharedPromise = undefined;
+    this.sharedCount = 0;
+  }
+
+  async acquireExclusive() {
+    this.acquireSharedPromise = undefined;
+    return this.lock.acquire();
+  }
+
+  async acquireShared() {
+    if (!this.acquireSharedPromise) {
+      this.acquireSharedPromise = this.lock.acquire();
+    }
+
+    return this.acquireSharedPromise.then(release => {
+      this.sharedCount++;
+
+      return () => {
+        this.sharedCount--;
+        if (this.sharedCount === 0) {
+          this.acquireSharedPromise = undefined;
+          release();
+        }
+      };
+    });
+  }
+}
+
 exports.Lock = Lock;
+exports.MRSWLock = MRSWLock;
