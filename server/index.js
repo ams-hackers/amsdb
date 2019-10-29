@@ -77,13 +77,23 @@ router.put("/keys/:key", async ctx => {
   ctx.body = { success: true };
 });
 
+async function filterAsync(fn, arr) {
+  const res = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (await fn(arr[i])) {
+      res.push(arr[i]);
+    }
+  }
+  return res;
+}
+
 router.get("/keys", async ctx => {
   const { token } = ctx.query;
   const fs = require("fs").promises;
   const tx = token ? decodeTransaction(token) : await getReadTransaction();
   const files = await fs.readdir(__dirname + "/../data/keys");
-  const filtered = files.filter(f => hasKey(tx, f));
-  ctx.body = filtered;
+  const visibleKeys = await filterAsync(key => hasKey(tx, key), files);
+  ctx.body = visibleKeys;
 });
 
 router.post("/begin-write-transaction", async ctx => {
