@@ -8,6 +8,16 @@ const { DATA_DIR } = require("./config");
 
 const keyLocks = {};
 
+async function filterAsync(fn, arr) {
+  const res = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (await fn(arr[i])) {
+      res.push(arr[i]);
+    }
+  }
+  return res;
+}
+
 async function acquireKeyLock(key) {
   if (!(key in keyLocks)) {
     keyLocks[key] = new Lock({
@@ -60,6 +70,13 @@ async function hasKey(tx, key) {
   return (await readKey(tx, key)) !== null;
 }
 
+async function listKeys(tx, prefix = "") {
+  const files = await fs.readdir(path.resolve(DATA_DIR, "keys"));
+  const filteredKeys = files.filter(key => key.startsWith(prefix));
+  const visibleKeys = await filterAsync(key => hasKey(tx, key), filteredKeys);
+  return visibleKeys;
+}
+
 async function writeKey(tx, key, value) {
   const out = getFilePathForKey(key);
 
@@ -76,4 +93,4 @@ async function writeKey(tx, key, value) {
   release();
 }
 
-module.exports = { readKey, writeKey, hasKey };
+module.exports = { readKey, writeKey, listKeys };
