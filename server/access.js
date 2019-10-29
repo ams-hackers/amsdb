@@ -56,6 +56,10 @@ async function readKey(tx, key) {
   }
 }
 
+async function hasKey(tx, key) {
+  return (await readKey(tx, key)) !== null;
+}
+
 async function writeKey(tx, key, value) {
   const out = getFilePathForKey(key);
 
@@ -72,4 +76,4 @@ async function writeKey(tx, key, value) {
   release();
 }
 
-module.exports = { readKey, writeKey };
+module.exports = { readKey, writeKey, hasKey };
