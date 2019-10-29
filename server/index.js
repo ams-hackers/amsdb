@@ -88,11 +88,12 @@ async function filterAsync(fn, arr) {
 }
 
 router.get("/keys", async ctx => {
-  const { token } = ctx.query;
+  const { token, prefix = "" } = ctx.query;
   const fs = require("fs").promises;
   const tx = token ? decodeTransaction(token) : await getReadTransaction();
   const files = await fs.readdir(__dirname + "/../data/keys");
-  const visibleKeys = await filterAsync(key => hasKey(tx, key), files);
+  const filteredKeys = files.filter(key => key.startsWith(prefix));
+  const visibleKeys = await filterAsync(key => hasKey(tx, key), filteredKeys);
   ctx.body = visibleKeys;
 });
 
