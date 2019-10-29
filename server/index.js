@@ -2,7 +2,7 @@ const Koa = require("koa");
 const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 
-const { readKey, writeKey } = require("./access");
+const { readKey, writeKey, hasKey } = require("./access");
 const {
   commitTransaction,
   decodeTransaction,
@@ -75,6 +75,15 @@ router.put("/keys/:key", async ctx => {
   const tx = decodeTransaction(token);
   await writeKey(tx, key, ctx.request.body);
   ctx.body = { success: true };
+});
+
+router.get("/keys", async ctx => {
+  const { token } = ctx.query;
+  const fs = require("fs").promises;
+  const tx = token ? decodeTransaction(token) : await getReadTransaction();
+  const files = await fs.readdir(__dirname + "/../data/keys");
+  const filtered = files.filter(f => hasKey(tx, f));
+  ctx.body = filtered;
 });
 
 router.post("/begin-write-transaction", async ctx => {
