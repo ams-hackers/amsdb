@@ -1,8 +1,9 @@
 const axios = require("axios");
+const http = require("http");
 
 async function getKey(request, token, key) {
-  let query = token ? `?token=${token}` : "";
-  const response = await request.get(`/keys/${key}${query}`);
+  const params = { token };
+  const response = await request.get(`/keys/${key}`, { params });
   if (response.data.value) {
     return response.data.value.value;
   } else {
@@ -11,9 +12,15 @@ async function getKey(request, token, key) {
 }
 
 async function putKey(request, token, key, value) {
-  let query = token ? `?token=${token}` : "";
-  await request.put(`/keys/${key}${query}`, { value });
+  const params = { token };
+  await request.put(`/keys/${key}`, { value }, { params });
   return;
+}
+
+async function listKeys(request, token, prefix) {
+  const params = { token, prefix };
+  const response = await request.get(`/keys`, { params });
+  return response.data;
 }
 
 class Connection {
@@ -23,6 +30,10 @@ class Connection {
 
   async get(key) {
     return getKey(this.request, undefined, key);
+  }
+
+  async list(prefix) {
+    return listKeys(this.request, undefined, prefix);
   }
 
   async writeTransaction() {
@@ -46,6 +57,9 @@ class ReadTransaction {
   get(key) {
     return getKey(this.request, this.token, key);
   }
+  list(prefix) {
+    return listKeys(this.request, this.token, prefix);
+  }
 }
 
 class WriteTransaction extends ReadTransaction {
@@ -65,7 +79,8 @@ class WriteTransaction extends ReadTransaction {
 function connect(host) {
   const request = axios.create({
     baseURL: host,
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
+    httpAgent: new http.Agent({ keepAlive: true })
   });
   return new Connection(request);
 }
