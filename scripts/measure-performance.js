@@ -1,31 +1,31 @@
 const { performance } = require("perf_hooks");
-const http = require("http");
-const axios = require("axios");
 const casual = require("casual");
 const Bluebird = require("bluebird");
+const { connect } = require("amsdb-client");
 
-const request = axios.create({
-  baseURL: "http://localhost:3000",
-  httpAgent: new http.Agent({ keepAlive: true })
-});
+const db = connect("http://localhost:3000");
 
 let total = 0;
 let count = 0;
 
-async function putGetKey() {
-  const key = casual.word;
+async function putGetKey(n) {
+  const key = `marble-${n}`;
   const start = performance.now();
-  await request.put(`/keys/${key}`, { name: casual.sentences(500) });
-  await request.get(`/keys/${key}`);
+  const tx = await db.writeTransaction();
+  await tx.put(key, { name: casual.sentences(500) });
+  await tx.commit();
+  await db.get(key);
   const end = performance.now();
+  console.log(`Put ${n}`);
   total += end - start;
   count++;
 }
 
+let n = 0;
 Bluebird.map(
-  new Array(1000),
+  new Array(10000),
   () => {
-    return putGetKey().catch(err => {
+    return putGetKey(++n).catch(err => {
       console.error(err.message);
       console.error(err.stack);
       console.error(err);
