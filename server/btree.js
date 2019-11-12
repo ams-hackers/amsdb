@@ -1,4 +1,5 @@
 const fs = require("fs").promises;
+const { O_RDWR, O_CREAT, O_NOATIME, O_SYNC } = require("fs").constants;
 
 const KB = 1024;
 
@@ -40,9 +41,9 @@ const writeBlock = (fh, buffer, blockPosition) => {
 };
 
 const start = async () => {
-  const fh = await fs.open("foo", "r+");
+  const fh = await fs.open("data.bin", O_RDWR | O_CREAT | O_NOATIME | O_SYNC);
 
-  await writeBlock(fh, new Uint8Array(BLOCK_SIZE).fill(1), 1);
+  await writeBlock(fh, new Uint8Array(BLOCK_SIZE).fill(2), 0);
   const fileContent = await readBlock(fh, 1);
 
   await fh.close();
