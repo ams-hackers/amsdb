@@ -130,8 +130,8 @@ class Block {
     return (this.freeOffset - BLOCK_HEADER_SIZE) / BLOCK_DATA_SIZE;
   }
 
-  static make() {
-    return new Block(0, BLOCK_HEADER_SIZE, []);
+  static make(isBranch) {
+    return new Block(isBranch ? 1 : 0, BLOCK_HEADER_SIZE, []);
   }
 
   static decode(buffer) {

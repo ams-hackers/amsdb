@@ -35,6 +35,19 @@ async function writeBlock(block) {
   return position;
 }
 
+function encodeBlockPosition(position) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32LE(position);
+  return buffer;
+}
+
+function decodeBlockPosition(buffer) {
+  if (buffer.length !== 4) {
+    throw new Error(`Buffer should have length 4`);
+  }
+  return buffer.readUInt32LE();
+}
+
 //
 // Some experiments
 //
@@ -98,9 +111,28 @@ async function operation3() {
       assert(fits, "Fits in right node");
     }
 
-    await writeBlock(left);
-    await writeBlock(right);
+    const leftOffset = await writeBlock(left);
+    const rightOffset = await writeBlock(right);
+
+    console.log("Left:", leftOffset.toString("16"));
+    console.log("Right:", rightOffset.toString("16"));
+
+    const newRoot = Block.make(true);
+    const leftBound = right.entries[0].key;
+    newRoot.insert(Buffer.alloc(0), encodeBlockPosition(leftOffset));
+    newRoot.insert(Buffer.from(leftBound), encodeBlockPosition(rightOffset));
+
+    await writeBlock(newRoot);
   }
+}
+
+async function operation4() {
+  const root = await readBlock((await blockCount()) - 1);
+  assert(root.flags === 1, "Last block should be root");
+  root.entries.forEach(entry => {
+    const { key, value } = entry;
+    console.log(key.toString(), "->", decodeBlockPosition(value));
+  });
 }
 
 const start = async () => {
@@ -109,6 +141,7 @@ const start = async () => {
   await operation1();
   await operation2();
   await operation3();
+  await operation4();
 
   await fh.close();
 };
