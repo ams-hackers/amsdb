@@ -72,6 +72,10 @@ class BlockCursor {
 //
 //
 const BLOCK_HEADER_SIZE = 4;
+const BLOCK_DATA_SIZE = BLOCK_SIZE - BLOCK_HEADER_SIZE;
+const ENTRY_HEADER_SIZE = 8;
+
+const MAX_ENTRY_SIZE = Math.floor(BLOCK_DATA_SIZE / 2);
 
 function getEntrySize(key, value) {
   return key.length + value.length + 2 * WORD;
@@ -102,8 +106,12 @@ class Block {
   }
 
   insert(key, value) {
-    const newFreeOfset = this.freeOffset + getEntrySize(key, value);
+    const entrySize = getEntrySize(key, value);
+    if (entrySize > MAX_ENTRY_SIZE) {
+      throw new Error(`Entry should be smaller than ${MAX_ENTRY_SIZE} bytes`);
+    }
 
+    const newFreeOfset = this.freeOffset + entrySize;
     if (newFreeOfset < BLOCK_SIZE) {
       this.entries.push({ key, value });
       this.entries.sort((e1, e2) => e1.key.compare(e2.key));
@@ -116,6 +124,10 @@ class Block {
 
   insertStrings(key, value) {
     return this.insert(Buffer.from(key), Buffer.from(value));
+  }
+
+  getUsage() {
+    return (this.freeOffset - BLOCK_HEADER_SIZE) / BLOCK_DATA_SIZE;
   }
 
   static make() {

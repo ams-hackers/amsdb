@@ -1,3 +1,4 @@
+const assert = require("assert");
 const fs = require("fs").promises;
 const {
   O_TRUNC,
@@ -54,6 +55,11 @@ async function operation2() {
   root.insertStrings("A", "1111111111111111111111111111");
   root.insertStrings("B", "2222222222222222222222222222");
   root.insertStrings("C", "3333333333333333333333333333");
+  root.insertStrings("D", "4444444444444444444444444444");
+  root.insertStrings("E", "5555555555555555555555555555");
+  root.insertStrings("F", "6666666666666666666666666666");
+  root.insertStrings("G", "7777777777777777777777777777");
+  root.insertStrings("H", "8888888888888888888888888888");
 
   await writeBlock(root);
 }
@@ -64,16 +70,36 @@ async function operation3() {
   //
   const root = await readBlock((await blockCount()) - 1);
 
-  const fits = root.insertStrings(
-    "D",
-    "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
-  );
+  const key = "X";
+  const value =
+    "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+
+  const fits = root.insertStrings(key, value);
 
   if (fits) {
     await writeBlock(root);
     return true;
   } else {
-    const [left, right] = splitBlock(root);
+    const entries = root.entries.slice();
+    entries.push({ key: Buffer.from(key), value: Buffer.from(value) });
+    entries.sort((e1, e2) => e1.key.compare(e2.key));
+
+    const left = Block.make();
+    while (left.getUsage() < 0.5) {
+      const entry = entries.shift();
+      const fits = left.insert(entry.key, entry.value);
+      assert(fits, "Fits in left node");
+    }
+
+    const right = Block.make();
+    while (entries.length) {
+      const entry = entries.shift();
+      const fits = right.insert(entry.key, entry.value);
+      assert(fits, "Fits in right node");
+    }
+
+    await writeBlock(left);
+    await writeBlock(right);
   }
 }
 
