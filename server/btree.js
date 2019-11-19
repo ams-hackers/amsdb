@@ -35,6 +35,10 @@ async function writeBlock(block) {
   return position;
 }
 
+async function getRootBlockPosition() {
+  return (await blockCount()) - 1;
+}
+
 function encodeBlockPosition(position) {
   const buffer = Buffer.alloc(4);
   buffer.writeUInt32LE(position);
@@ -46,6 +50,36 @@ function decodeBlockPosition(buffer) {
     throw new Error(`Buffer should have length 4`);
   }
   return buffer.readUInt32LE();
+}
+
+async function lookupKeyFromBlockPosition(position, key) {
+  const block = await readBlock(position);
+  if (block.flags === 1) {
+    // branch
+    for (let i = 0; i < block.entries.length; i++) {
+      const leftBound = block.entries[i].key;
+      const rightBound = block.entries[i + 1] && block.entries[i + 1].key;
+      if (
+        key.compare(leftBound) >= 0 &&
+        (!rightBound || key.compare(rightBound) < 0)
+      ) {
+        const childPosition = decodeBlockPosition(block.entries[i].value);
+        const res = await lookupKeyFromBlockPosition(childPosition, key);
+        return {
+          path: [position, ...res.path],
+          value: res.value
+        };
+      }
+    }
+  } else {
+    // data
+    for (let i = 0; i < block.entries.length; i++) {
+      if (key.compare(block.entries[i].key) === 0) {
+        return { path: [position], value: block.entries[i].value };
+      }
+    }
+    throw new Error(`Key ${key} not found`);
+  }
 }
 
 //
@@ -62,7 +96,7 @@ async function operation2() {
   //
   // Read the root
   //
-  const root = await readBlock((await blockCount()) - 1);
+  const root = await readBlock(await getRootBlockPosition());
 
   // Create a new node with a few entries
   root.insertStrings("A", "1111111111111111111111111111");
@@ -81,7 +115,7 @@ async function operation3() {
   //
   // Read the root
   //
-  const root = await readBlock((await blockCount()) - 1);
+  const root = await readBlock(await getRootBlockPosition());
 
   const key = "X";
   const value =
@@ -127,12 +161,21 @@ async function operation3() {
 }
 
 async function operation4() {
-  const root = await readBlock((await blockCount()) - 1);
-  assert(root.flags === 1, "Last block should be root");
+  const root = await readBlock(await getRootBlockPosition());
+  assert(root.flags === 1, "Last block should be branch");
   root.entries.forEach(entry => {
     const { key, value } = entry;
     console.log(key.toString(), "->", decodeBlockPosition(value));
   });
+}
+
+async function operation5() {
+  const key = Buffer.from("H");
+  const res = await lookupKeyFromBlockPosition(
+    await getRootBlockPosition(),
+    key
+  );
+  console.log({ key, path: res.path, value: res.value.toString() });
 }
 
 const start = async () => {
@@ -142,6 +185,7 @@ const start = async () => {
   await operation2();
   await operation3();
   await operation4();
+  await operation5();
 
   await fh.close();
 };
