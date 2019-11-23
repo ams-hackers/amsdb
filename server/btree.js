@@ -7,7 +7,7 @@ const {
   O_NOATIME,
   O_APPEND
 } = require("fs").constants;
-const { Block, BLOCK_SIZE } = require("./block");
+const { getEntrySize, Block, BLOCK_SIZE } = require("./block");
 
 let fh;
 async function openDB() {
@@ -131,15 +131,37 @@ async function operation3() {
     entries.push({ key: Buffer.from(key), value: Buffer.from(value) });
     entries.sort((e1, e2) => e1.key.compare(e2.key));
 
+    const entriesTotalSize = entries
+      .map(e => getEntrySize(e.key, e.value))
+      .reduce((s1, s2) => s1 + s2, 0);
+
+    let leftSize = 0;
+    let rightSize = entriesTotalSize;
+
     const left = Block.make();
-    while (left.getUsage() < 0.5) {
-      const entry = entries.shift();
+    const right = Block.make();
+
+    while (true) {
+      const entry = entries[0];
+      const entrySize = getEntrySize(entry.key, entry.value);
+
+      // We will stop the loop when movig the next entry will make the
+      // sizes of the blocks more different than they are now
+      if (
+        Math.abs(leftSize + entrySize - (rightSize - entrySize)) >=
+        Math.abs(leftSize - rightSize)
+      ) {
+        break;
+      }
+
+      entries.shift();
       const fits = left.insert(entry.key, entry.value);
       assert(fits, "Fits in left node");
+      leftSize += entrySize;
+      rightSize -= entrySize;
     }
 
-    const right = Block.make();
-    while (entries.length) {
+    while (entries.length > 0) {
       const entry = entries.shift();
       const fits = right.insert(entry.key, entry.value);
       assert(fits, "Fits in right node");
@@ -147,9 +169,6 @@ async function operation3() {
 
     const leftOffset = await writeBlock(left);
     const rightOffset = await writeBlock(right);
-
-    console.log("Left:", leftOffset.toString("16"));
-    console.log("Right:", rightOffset.toString("16"));
 
     const newRoot = Block.make(true);
     const leftBound = right.entries[0].key;

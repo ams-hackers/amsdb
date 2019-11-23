@@ -127,7 +127,7 @@ class Block {
   }
 
   getUsage() {
-    return (this.freeOffset - BLOCK_HEADER_SIZE) / BLOCK_DATA_SIZE;
+    return this.freeOffset - BLOCK_HEADER_SIZE;
   }
 
   static make(isBranch) {
@@ -154,4 +154,4 @@ class Block {
   }
 }
 
-module.exports = { Block, BLOCK_SIZE };
+module.exports = { Block, BLOCK_SIZE, getEntrySize };
