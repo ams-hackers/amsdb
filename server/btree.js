@@ -52,6 +52,71 @@ function decodeBlockPosition(buffer) {
   return buffer.readUInt32LE();
 }
 
+async function insertKeyValue(key, value) {
+  //
+  // Read the root
+  //
+  const root = await readBlock(await getRootBlockPosition());
+
+  const fits = root.insertStrings(key, value);
+
+  if (fits) {
+    await writeBlock(root);
+    return true;
+  } else {
+    const entries = root.entries.slice();
+    entries.push({ key: Buffer.from(key), value: Buffer.from(value) });
+    entries.sort((e1, e2) => e1.key.compare(e2.key));
+
+    const entriesTotalSize = entries
+      .map(e => getEntrySize(e.key, e.value))
+      .reduce((s1, s2) => s1 + s2, 0);
+
+    let leftSize = 0;
+    let rightSize = entriesTotalSize;
+
+    const left = Block.make();
+    const right = Block.make();
+
+    while (true) {
+      const entry = entries[0];
+      const entrySize = getEntrySize(entry.key, entry.value);
+
+      // We will stop the loop when movig the next entry will make the
+      // sizes of the blocks more different than they are now
+      if (
+        Math.abs(leftSize + entrySize - (rightSize - entrySize)) >=
+        Math.abs(leftSize - rightSize)
+      ) {
+        break;
+      }
+
+      entries.shift();
+      const fits = left.insert(entry.key, entry.value);
+      assert(fits, "Fits in left node");
+      leftSize += entrySize;
+      rightSize -= entrySize;
+    }
+
+    while (entries.length > 0) {
+      const entry = entries.shift();
+      const fits = right.insert(entry.key, entry.value);
+      assert(fits, "Fits in right node");
+    }
+
+    const leftOffset = await writeBlock(left);
+    const rightOffset = await writeBlock(right);
+
+    const newRoot = Block.make(true);
+    const leftBound = right.entries[0].key;
+
+    newRoot.insertSentinelEntry(leftOffset);
+    newRoot.insertOffset(Buffer.from(leftBound), rightOffset);
+
+    await writeBlock(newRoot);
+  }
+}
+
 async function lookupKeyFromBlockPosition(position, key) {
   const block = await readBlock(position);
   if (block.flags === 1) {
@@ -112,71 +177,11 @@ async function operation2() {
 }
 
 async function operation3() {
-  //
-  // Read the root
-  //
-  const root = await readBlock(await getRootBlockPosition());
-
   const key = "X";
   const value =
     "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
 
-  const fits = root.insertStrings(key, value);
-
-  if (fits) {
-    await writeBlock(root);
-    return true;
-  } else {
-    const entries = root.entries.slice();
-    entries.push({ key: Buffer.from(key), value: Buffer.from(value) });
-    entries.sort((e1, e2) => e1.key.compare(e2.key));
-
-    const entriesTotalSize = entries
-      .map(e => getEntrySize(e.key, e.value))
-      .reduce((s1, s2) => s1 + s2, 0);
-
-    let leftSize = 0;
-    let rightSize = entriesTotalSize;
-
-    const left = Block.make();
-    const right = Block.make();
-
-    while (true) {
-      const entry = entries[0];
-      const entrySize = getEntrySize(entry.key, entry.value);
-
-      // We will stop the loop when movig the next entry will make the
-      // sizes of the blocks more different than they are now
-      if (
-        Math.abs(leftSize + entrySize - (rightSize - entrySize)) >=
-        Math.abs(leftSize - rightSize)
-      ) {
-        break;
-      }
-
-      entries.shift();
-      const fits = left.insert(entry.key, entry.value);
-      assert(fits, "Fits in left node");
-      leftSize += entrySize;
-      rightSize -= entrySize;
-    }
-
-    while (entries.length > 0) {
-      const entry = entries.shift();
-      const fits = right.insert(entry.key, entry.value);
-      assert(fits, "Fits in right node");
-    }
-
-    const leftOffset = await writeBlock(left);
-    const rightOffset = await writeBlock(right);
-
-    const newRoot = Block.make(true);
-    const leftBound = right.entries[0].key;
-    newRoot.insert(Buffer.alloc(0), encodeBlockPosition(leftOffset));
-    newRoot.insert(Buffer.from(leftBound), encodeBlockPosition(rightOffset));
-
-    await writeBlock(newRoot);
-  }
+  await insertKeyValue(key, value);
 }
 
 async function operation4() {
