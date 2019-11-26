@@ -132,12 +132,12 @@ class Block {
     return this.insert(Buffer.from(key), Buffer.from(value));
   }
 
-  insertOffset(key, position) {
+  insertPosition(key, position) {
     return this.insert(key, encodeBlockPosition(position));
   }
 
   insertSentinelEntry(position) {
-    return this.insertOffset(Buffer.alloc(0), position);
+    return this.insertPosition(Buffer.alloc(0), position);
   }
 
   getUsage() {

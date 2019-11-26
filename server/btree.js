@@ -56,7 +56,9 @@ async function insertKeyValue(key, value) {
   //
   // Read the root
   //
-  const root = await readBlock(await getRootBlockPosition());
+
+  const keyPath = await lookupKeyPath(await getRootBlockPosition(), key);
+  const root = keyPath[keyPath.length - 1].block;
 
   const fits = root.insertStrings(key, value);
 
@@ -104,46 +106,74 @@ async function insertKeyValue(key, value) {
       assert(fits, "Fits in right node");
     }
 
-    const leftOffset = await writeBlock(left);
-    const rightOffset = await writeBlock(right);
-
+    const leftPosition = await writeBlock(left);
+    const rightPosition = await writeBlock(right);
     const newRoot = Block.make(true);
-    const leftBound = right.entries[0].key;
 
-    newRoot.insertSentinelEntry(leftOffset);
-    newRoot.insertOffset(Buffer.from(leftBound), rightOffset);
-
+    insertPositionInBlock(
+      newRoot,
+      right.entries[0].key,
+      leftPosition,
+      rightPosition
+    );
     await writeBlock(newRoot);
   }
 }
 
+async function insertPositionInBlock(block, key, leftPosition, rightPosition) {
+  block.insertSentinelEntry(leftPosition);
+  block.insertPosition(Buffer.from(key), rightPosition);
+}
+
+function getBounds(block, entry) {
+  const leftBound = block.entries[entry].key;
+  const rightBound = block.entries[entry + 1] && block.entries[entry + 1].key;
+
+  return [leftBound, rightBound];
+}
+
 async function lookupKeyFromBlockPosition(position, key) {
+  const keyPath = await lookupKeyPath(position, key);
+  const { block } = keyPath[keyPath.length - 1];
+
+  // data
+  for (let i = 0; i < block.entries.length; i++) {
+    if (key.compare(block.entries[i].key) === 0) {
+      return { path: keyPath, value: block.entries[i].value };
+    }
+
+    throw new Error(`Key ${key} not found`);
+  }
+}
+
+async function lookupKeyPath(position, key) {
   const block = await readBlock(position);
   if (block.flags === 1) {
     // branch
     for (let i = 0; i < block.entries.length; i++) {
-      const leftBound = block.entries[i].key;
-      const rightBound = block.entries[i + 1] && block.entries[i + 1].key;
+      const [leftBound, rightBound] = getBounds(block, i);
       if (
         key.compare(leftBound) >= 0 &&
         (!rightBound || key.compare(rightBound) < 0)
       ) {
         const childPosition = decodeBlockPosition(block.entries[i].value);
-        const res = await lookupKeyFromBlockPosition(childPosition, key);
-        return {
-          path: [position, ...res.path],
-          value: res.value
-        };
+        const res = await lookupKeyPath(childPosition, key);
+        return [
+          {
+            position,
+            block
+          }
+        ].concat(res);
       }
     }
   } else {
     // data
-    for (let i = 0; i < block.entries.length; i++) {
-      if (key.compare(block.entries[i].key) === 0) {
-        return { path: [position], value: block.entries[i].value };
+    return [
+      {
+        position,
+        block
       }
-    }
-    throw new Error(`Key ${key} not found`);
+    ];
   }
 }
 
