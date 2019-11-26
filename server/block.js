@@ -2,6 +2,12 @@ const KB = 1024;
 const WORD = 4;
 const BLOCK_SIZE = 512;
 
+function encodeBlockPosition(position) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32LE(position);
+  return buffer;
+}
+
 //
 // Write and read bytes/words/slices from a block sequentially
 //
@@ -124,6 +130,14 @@ class Block {
 
   insertStrings(key, value) {
     return this.insert(Buffer.from(key), Buffer.from(value));
+  }
+
+  insertOffset(key, position) {
+    return this.insert(key, encodeBlockPosition(position));
+  }
+
+  insertSentinelEntry(position) {
+    return this.insertOffset(Buffer.alloc(0), position);
   }
 
   getUsage() {
