@@ -6,10 +6,17 @@ use std::io::{self, Read, Seek, Write};
 
 pub const PAGE_SIZE: usize = 4096;
 
-type Page = [u8; PAGE_SIZE];
-type PageIndex = u64;
+pub type Page = [u8; PAGE_SIZE];
+pub type PageIndex = u64;
 type PagerError = io::Error;
 
+/// A Pager manages a set of pages from a file.
+///
+/// Pages are a fixed-size block of bytes. Each page can be identified
+/// and read from the file by its index in the file with `read_page`.
+///
+/// New pages can be appended to the file with `append_page`.
+///
 pub struct Pager {
     file: fs::File,
     file_size: u64,
@@ -17,6 +24,10 @@ pub struct Pager {
 }
 
 impl Pager {
+    /// Create a new pager for a given file.
+    ///
+    /// If `truncate` is true, the file will recreated. It is used
+    /// mostly during test execution.
     pub fn new(filename: &str, truncate: bool) -> io::Result<Pager> {
         if truncate {
             remove_file_if_exists(filename)?;
@@ -39,6 +50,7 @@ impl Pager {
         })
     }
 
+    /// Append a page to a new file returning the page index, if successful.
     pub fn append_page(&mut self, page: &Page) -> Result<PageIndex, PagerError> {
         let page_index = self.get_next_page_index();
         self.file.write_all(page)?;
@@ -46,6 +58,7 @@ impl Pager {
         Ok(page_index)
     }
 
+    /// Read a page by the given PageIndex.
     pub fn read_page(&mut self, index: PageIndex) -> &Page {
         match self.page_cache.entry(index) {
             Entry::Occupied(e) => e.into_mut(),
@@ -62,11 +75,19 @@ impl Pager {
         }
     }
 
+    /// Flush all pages ensuring they are written to disk.
+    ///
+    /// If this function returns, we can assume that the data is
+    /// durabily stored in disk and will remain there even after a
+    /// crash of the database.
+    ///
     pub fn sync(&self) {
         self.file.sync_all().expect("Unable to sync");
     }
 
-    pub fn get_next_page_index(&self) -> PageIndex {
+    /// Return the page index of the next page that will be written
+    /// with `append_page`.
+    fn get_next_page_index(&self) -> PageIndex {
         self.file_size / PAGE_SIZE as u64
     }
 }
