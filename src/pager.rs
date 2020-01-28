@@ -16,11 +16,13 @@ pub struct Pager {
 
 impl Pager {
     pub fn new(filename: &str, truncate: bool) -> io::Result<Pager> {
+        if truncate {
+            fs::remove_file(filename)?;
+        }
         let file = fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .truncate(truncate)
             .append(true)
             .open(filename)?;
         let page_cache: HashMap<PageIndex, Page> = HashMap::new();
@@ -49,8 +51,16 @@ impl Pager {
         }
     }
 
+    pub fn sync(&self) {
+        self.file.sync_all().expect("Unable to sync");
+    }
+
+    pub fn get_byte_count(&self) -> u64 {
+        self.file.metadata().expect("Can not open the metadata for data file").len()
+    }
+
     pub fn get_next_page_index(&self) -> PageIndex {
-        todo!()
+        self.get_byte_count() / PAGE_SIZE as u64
     }
 }
 
@@ -59,7 +69,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_all() {
-        let _pager = Pager::new("data.bin", true);
+    fn test_single_page_write() {
+        let mut pager = Pager::new("data.bin", true).expect("create pager");
+        let new_page = [42u8; PAGE_SIZE];
+        let index = pager.append_page(&new_page).expect("append page");
+        pager.sync();
+        assert_eq!(index, 0);
+        let the_page = pager.read_page(0);
+        assert_eq!(the_page[0], 42u8);
     }
 }
