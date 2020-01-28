@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::io::{self, Read, Seek, Write};
 
 pub const PAGE_SIZE: usize = 4096;
@@ -18,7 +19,13 @@ pub struct Pager {
 impl Pager {
     pub fn new(filename: &str, truncate: bool) -> io::Result<Pager> {
         if truncate {
-            fs::remove_file(filename)?;
+            fs::remove_file(filename).or_else(|err| {
+                if err.kind() == ErrorKind::NotFound {
+                    Ok(())
+                } else {
+                    Err(err)
+                }
+            })?;
         }
         let file = fs::OpenOptions::new()
             .read(true)
