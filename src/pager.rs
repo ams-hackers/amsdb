@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Read, Seek, Write};
 
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 type Page = [u8; PAGE_SIZE];
 type PageIndex = u64;
