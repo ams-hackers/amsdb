@@ -11,6 +11,7 @@ type PagerError = io::Error;
 
 pub struct Pager {
     file: fs::File,
+    file_size: u64,
     page_cache: HashMap<PageIndex, Page>,
 }
 
@@ -25,13 +26,15 @@ impl Pager {
             .create(true)
             .append(true)
             .open(filename)?;
+        let file_size = file.metadata().expect("Can not open the metadata for data file").len();
         let page_cache: HashMap<PageIndex, Page> = HashMap::new();
-        Ok(Pager { file, page_cache })
+        Ok(Pager { file, file_size, page_cache })
     }
 
     pub fn append_page(&mut self, page: &Page) -> Result<PageIndex, PagerError> {
         let page_index = self.get_next_page_index();
         self.file.write_all(page)?;
+        self.file_size += PAGE_SIZE as u64;
         Ok(page_index)
     }
 
@@ -55,12 +58,8 @@ impl Pager {
         self.file.sync_all().expect("Unable to sync");
     }
 
-    pub fn get_byte_count(&self) -> u64 {
-        self.file.metadata().expect("Can not open the metadata for data file").len()
-    }
-
     pub fn get_next_page_index(&self) -> PageIndex {
-        self.get_byte_count() / PAGE_SIZE as u64
+        self.file_size / PAGE_SIZE as u64
     }
 }
 
