@@ -33,9 +33,16 @@ impl Pager {
             .create(true)
             .append(true)
             .open(filename)?;
-        let file_size = file.metadata().expect("Can not open the metadata for data file").len();
+        let file_size = file
+            .metadata()
+            .expect("Can not open the metadata for data file")
+            .len();
         let page_cache: HashMap<PageIndex, Page> = HashMap::new();
-        Ok(Pager { file, file_size, page_cache })
+        Ok(Pager {
+            file,
+            file_size,
+            page_cache,
+        })
     }
 
     pub fn append_page(&mut self, page: &Page) -> Result<PageIndex, PagerError> {
