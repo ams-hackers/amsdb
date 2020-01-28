@@ -19,13 +19,7 @@ pub struct Pager {
 impl Pager {
     pub fn new(filename: &str, truncate: bool) -> io::Result<Pager> {
         if truncate {
-            fs::remove_file(filename).or_else(|err| {
-                if err.kind() == ErrorKind::NotFound {
-                    Ok(())
-                } else {
-                    Err(err)
-                }
-            })?;
+            remove_file_if_exists(filename)?;
         }
         let file = fs::OpenOptions::new()
             .read(true)
@@ -75,6 +69,16 @@ impl Pager {
     pub fn get_next_page_index(&self) -> PageIndex {
         self.file_size / PAGE_SIZE as u64
     }
+}
+
+fn remove_file_if_exists(filename: &str) -> io::Result<()> {
+    fs::remove_file(filename).or_else(|err| {
+        if err.kind() == ErrorKind::NotFound {
+            Ok(())
+        } else {
+            Err(err)
+        }
+    })
 }
 
 #[cfg(test)]
