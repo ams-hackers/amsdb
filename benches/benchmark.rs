@@ -15,7 +15,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let mut pager = Pager::new("data.bin", true).expect("can not create pager");
         b.iter(|| {
             for i in 0..255 {
-                let new_page = [i; amsdb::PAGE_SIZE];
+                let new_page = [i; amsdb::PAGE_SIZE as usize];
                 let _index = pager.append_page(&new_page).expect("append page");
             }
             pager.sync();

@@ -4,9 +4,9 @@ use std::fs;
 use std::io::ErrorKind;
 use std::io::{self, Read, Seek, Write};
 
-pub const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: u32 = 4096;
 
-pub type Page = [u8; PAGE_SIZE];
+pub type Page = [u8; PAGE_SIZE as usize];
 pub type PageIndex = u64;
 type PagerError = io::Error;
 
@@ -67,7 +67,7 @@ impl Pager {
                     .seek(io::SeekFrom::Start(index * PAGE_SIZE as u64))
                     .expect("Can't seek to index");
 
-                let mut page: Page = [0; PAGE_SIZE];
+                let mut page: Page = [0; PAGE_SIZE as usize];
                 self.file.read_exact(&mut page).expect("Can't read page");
 
                 e.insert(page)
@@ -109,7 +109,7 @@ mod test {
     #[test]
     fn test_single_page_write() {
         let mut pager = Pager::new("data.bin", true).expect("create pager");
-        let new_page = [42u8; PAGE_SIZE];
+        let new_page = [42u8; PAGE_SIZE as usize];
         let index = pager.append_page(&new_page).expect("append page");
         pager.sync();
         assert_eq!(index, 0);
