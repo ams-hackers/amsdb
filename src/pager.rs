@@ -1,5 +1,6 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fs;
 use std::io::ErrorKind;
 use std::io::{self, Read, Seek, Write};
@@ -32,7 +33,7 @@ impl Pager {
         if truncate {
             remove_file_if_exists(filename)?;
         }
-        let file = fs::OpenOptions::new()
+        let mut file = fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
@@ -42,6 +43,21 @@ impl Pager {
             .metadata()
             .expect("Can not open the metadata for data file")
             .len();
+
+        // If the file size is not multiple of the page size, we'll
+        // write some zero bytes to make it so, to ensure we only
+        // write pages at the right boundaries.
+        let partial_written_page_bytes: u32 = (file_size % PAGE_SIZE as u64).try_into().unwrap();
+        if partial_written_page_bytes > 0 {
+            let page = [0; PAGE_SIZE as usize];
+            println!(
+                "Partial page detected ({} / {} bytes). Padding until the next page boundary.",
+                partial_written_page_bytes, PAGE_SIZE
+            );
+            file.write_all(&page[(partial_written_page_bytes as usize)..])?;
+            file.sync_all()?;
+        }
+
         let page_cache: HashMap<PageIndex, Page> = HashMap::new();
         Ok(Pager {
             file,
@@ -105,6 +121,8 @@ fn remove_file_if_exists(filename: &str) -> io::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::fs;
+    use std::io::prelude::*;
 
     #[test]
     fn test_single_page_write() {
@@ -115,5 +133,19 @@ mod test {
         assert_eq!(index, 0);
         let the_page = pager.read_page(0);
         assert_eq!(the_page[0], 42u8);
+    }
+
+    #[test]
+    fn test_partial_page_recovery() {
+        // After opening a file with the pager, the file size should
+        // always being a multiple of a page.
+
+        let testfile = "/tmp/amsdb-partial-write.bin";
+        let mut file = fs::File::create(testfile).unwrap();
+        file.write_all(b"foobar").unwrap();
+        {
+            Pager::new(testfile, false).expect("create pager");
+        }
+        assert!(fs::metadata(testfile).unwrap().len() % PAGE_SIZE as u64 == 0);
     }
 }
