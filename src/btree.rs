@@ -196,39 +196,61 @@ impl DataNode {
         DataNode(binary)
     }
 
-    /// Insert a key-value pair.
-    fn insert(&mut self, key: &Key, value: &Value) {
+    fn read_header(&self) -> u64 {
         let head_array = [
             self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], self.0[7],
         ];
         let header = u64::from_le_bytes(head_array);
-        //        let size =
-        let mut offset = (header >> 2 & 0b1111111111) as usize;
+        header
+    }
 
-        let key_size: u8 = key.len().try_into().unwrap();
-        self.0[offset] = key_size;
-        offset += 1;
-        for (_, x) in key.iter().enumerate() {
-            self.0[offset] = *x;
-            offset += 1;
-        }
+    fn read_used_size(&self) -> u16 {
+        let header = self.read_header();
+        let used_size = header >> 2 & 0b1111111111;
+        used_size.try_into().unwrap()
+    }
 
-        let value_size: u16 = value.len().try_into().unwrap();
-        let [lo, hi] = value_size.to_le_bytes();
-        self.0[offset] = lo;
-        offset += 1;
-        self.0[offset] = hi;
-        offset += 1;
-        for (ix, x) in value.iter().enumerate() {
-            self.0[offset] = *x;
-            offset += 1;
-        }
-
-        let header = (offset as u64) << 2 | header;
+    fn write_used_size(&mut self, used_size: u64) {
+        let header = (used_size << 2) | self.read_header();
         let head_array = header.to_le_bytes();
         for (ix, n) in head_array.iter().enumerate() {
             self.0[ix] = *n;
         }
+    }
+
+    fn write_array_at(&mut self, data: &[u8], offset: &mut usize) {
+        for (_, x) in data.iter().enumerate() {
+            self.0[*offset] = *x;
+            *offset += 1;
+        }
+    }
+
+    fn write_u8_at(&mut self, data: u8, offset: &mut usize) {
+        self.0[*offset] = data;
+        *offset += 1;
+    }
+
+    fn write_u16_at(&mut self, data: u16, offset: &mut usize) {
+        let [lo, hi] = data.to_le_bytes();
+        self.0[*offset] = lo;
+        *offset += 1;
+        self.0[*offset] = hi;
+        *offset += 1;
+    }
+
+    /// Insert a key-value pair.
+    fn insert(&mut self, key: &Key, value: &Value) {
+        let mut offset = self.read_used_size() as usize;
+
+        let key_size: u8 = key.len().try_into().unwrap();
+        self.write_u8_at(key_size, &mut offset);
+        self.write_array_at(key, &mut offset);
+
+        let value_size: u16 = value.len().try_into().unwrap();
+        self.write_u16_at(value_size, &mut offset);
+        self.write_array_at(value, &mut offset);
+
+        self.write_used_size(offset as u64);
 
         println!("{:?}", &self.0[..]);
     }
