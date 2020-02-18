@@ -43,6 +43,7 @@
 //!
 
 use crate::pager::{Page, Pager, PAGE_SIZE};
+use std::convert::TryInto;
 
 pub type Key = Vec<u8>;
 pub type Value = Vec<u8>;
@@ -176,17 +177,76 @@ impl BranchNode {
 struct DataNode(Page);
 
 impl DataNode {
-    fn new() -> DataNode {
-        todo!()
+    fn new(is_root: bool) -> DataNode {
+        let mut header = (8u64 << 2);
+        //        println!("{:?}", header);
+
+        if is_root {
+            header |= 1u64;
+        }
+
+        let header = header.to_le_bytes();
+        //        println!("{:?}", header);
+
+        let mut binary = [0u8; PAGE_SIZE as usize];
+        for (idx, item) in header.iter().enumerate() {
+            binary[idx] = *item;
+        }
+        //        binary[5] = 12u8;
+        DataNode(binary)
     }
 
     /// Insert a key-value pair.
-    fn insert(&mut self, key: &Key, value: &Value) -> InsertResult<DataNode> {
-        todo!()
+    fn insert(&mut self, key: &Key, value: &Value) {
+        let head_array = [
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6], self.0[7],
+        ];
+        let header = u64::from_le_bytes(head_array);
+        //        let size =
+        let mut offset = (header >> 2 & 0b1111111111) as usize;
+
+        let key_size: u8 = key.len().try_into().unwrap();
+        self.0[offset] = key_size;
+        offset += 1;
+        for (_, x) in key.iter().enumerate() {
+            self.0[offset] = *x;
+            offset += 1;
+        }
+
+        let value_size: u16 = value.len().try_into().unwrap();
+        let [lo, hi] = value_size.to_le_bytes();
+        self.0[offset] = lo;
+        offset += 1;
+        self.0[offset] = hi;
+        offset += 1;
+        for (ix, x) in value.iter().enumerate() {
+            self.0[offset] = *x;
+            offset += 1;
+        }
+
+        let header = (offset as u64) << 2 | header;
+        let head_array = header.to_le_bytes();
+        for (ix, n) in head_array.iter().enumerate() {
+            self.0[ix] = *n;
+        }
+
+        println!("{:?}", &self.0[..]);
     }
 
     /// Find the value for `key` if it is there.
     fn lookup<'a>(&'a self, key: &Key) -> Option<&'a Value> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn create_new_datanode() {
+        let mut dnode = DataNode::new(true);
+        dnode.insert(&vec![7, 8], &vec![8, 9]);
+        dnode.insert(&vec![7, 8], &vec![8, 9]);
     }
 }
